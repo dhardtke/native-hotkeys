@@ -41,7 +41,11 @@ std::function<void()> getFunctionFromMapping(int modifiers, int keyCode) {
     return nullptr;
 }
 
-int main(int argc, char *argv[]) {
+
+int APIENTRY WinMain(HINSTANCE hInstance,
+                     HINSTANCE hPrevInstance,
+                     LPTSTR lpCmdLine,
+                     int nCmdShow) {
     // register hotkeys
     for (auto const &iterator : mapping) {
         std::pair<int, int> hotkey = iterator.first;
