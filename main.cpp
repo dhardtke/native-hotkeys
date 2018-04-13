@@ -14,7 +14,7 @@
 std::map<std::pair<int, int>, std::function<void()>> mapping{
         {{MOD_CONTROL | MOD_ALT, 0x53}, [] {
             // CTRL + ALT + S
-            ShellExecute(nullptr, "open", "X:\\media\\Serien", nullptr, nullptr, SW_SHOWMAXIMIZED);
+            ShellExecute(nullptr, "open", "X:\\series", nullptr, nullptr, SW_SHOWMAXIMIZED);
         }},
         {{MOD_CONTROL | MOD_ALT, 0x44}, [] {
             // CTRL + ALT + D
@@ -22,7 +22,7 @@ std::map<std::pair<int, int>, std::function<void()>> mapping{
         }},
         {{MOD_CONTROL | MOD_ALT, 0x46}, [] {
             // CTRL + ALT + F
-            ShellExecute(nullptr, "open", "X:\\media\\Filme", nullptr, nullptr, SW_SHOWMAXIMIZED);
+            ShellExecute(nullptr, "open", "X:\\films", nullptr, nullptr, SW_SHOWMAXIMIZED);
         }},
         {{MOD_CONTROL | MOD_ALT, 0x50}, [] {
             // CTRL + ALT + P
