@@ -53,6 +53,13 @@ void RedirectIOToConsole() {
     std::cin.clear();
 }
 
+void error(const std::string &msg) {
+    RedirectIOToConsole();
+    std::cerr << msg << std::endl;
+    system("pause");
+    std::exit(1);
+}
+
 void readHotkeysFromFile(const std::string &filename, std::map<std::pair<int, int>, std::string> &hotkeys) {
     static std::map<std::string, int> MODIFIERS{
             {"MOD_ALT",     MOD_ALT},
@@ -62,20 +69,14 @@ void readHotkeysFromFile(const std::string &filename, std::map<std::pair<int, in
     };
     INIReader reader(filename);
     if (reader.ParseError() != 0) {
-        RedirectIOToConsole();
-        std::cerr << "Couldn't read " << filename << "." << std::endl;
-        system("pause");
-        std::exit(1);
+        error("Couldn't read " + filename + "!");
     }
     for (const auto &section : reader.Sections()) {
         const auto rawKey = reader.Get(section, "key", "");
         const auto rawModifiers = reader.Get(section, "modifiers", "");
         const auto exec = reader.Get(section, "exec", "");
         if (rawKey.empty() || rawModifiers.empty() || exec.empty()) {
-            RedirectIOToConsole();
-            std::cerr << "key, modifiers and exec are mandatory for section " << section << std::endl;
-            system("pause");
-            std::exit(1);
+            error("key, modifiers and exec are mandatory for section " + section + "!");
         }
 
         const int keyCode = toupper(rawKey[0]);
@@ -86,11 +87,8 @@ void readHotkeysFromFile(const std::string &filename, std::map<std::pair<int, in
             try {
                 modifiers |= MODIFIERS[tmp];
             } catch (std::out_of_range &) {
-                RedirectIOToConsole();
-                std::cerr << "The modifier " << tmp
-                          << " is invalid. Only MOD_ALT, MOD_CONTROL, MOD_SHIFT AND MOD_WIN are allowed" << std::endl;
-                system("pause");
-                std::exit(1);
+                error("The modifier " + tmp +
+                      " is invalid. Only MOD_ALT, MOD_CONTROL, MOD_SHIFT AND MOD_WIN are allowed");
             }
         }
         const auto identifier = std::make_pair(keyCode, modifiers);
@@ -109,11 +107,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
     for (auto const &iterator : hotkeys) {
         std::pair<int, int> hotkey = iterator.first;
         if (!RegisterHotKey(nullptr, 1, static_cast<UINT>(hotkey.second), static_cast<UINT>(hotkey.first))) {
-            RedirectIOToConsole();
-            std::cerr << "Couldn't register hotkey " << hotkey.first << " (modifiers " << hotkey.second << ")"
-                      << std::endl;
-            system("pause");
-            std::exit(1);
+            error("Couldn't register hotkey " + std::to_string(hotkey.first) + " (modifiers " +
+                  std::to_string(hotkey.second) + ")");
         }
     }
 
