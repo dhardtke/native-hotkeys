@@ -120,7 +120,6 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
     // listen to hotkey presses
     MSG msg = {nullptr};
     BOOL ret;
-    RedirectIOToConsole();
     // TODO: GetMessage is blocking when sending exit to the program
     while ((ret = GetMessage(&msg, nullptr, 0, 0)) != 0) {
         if (ret == -1) {
