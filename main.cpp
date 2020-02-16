@@ -2,65 +2,37 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include <iostream>
 #include <Windows.h>
 #include <map>
 #include <string>
-#include <sstream>
+#include <utility>
 #include "lib/INIReader.h"
+#include "lib/Error.h"
 
-#include <fcntl.h> // for _O_TEXT and _O_BINARY */
 #include <io.h> // for _open_osfhandle
 
-// copied from https://stackoverflow.com/a/46050762
-void RedirectIOToConsole() {
-    // Create a console for this application
-    AllocConsole();
+// hotkeys are a pair of modifiers and their corresponding key
+typedef std::pair<unsigned int, unsigned int> Hotkey;
 
-    // Get STDOUT handle
-    HANDLE ConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-    int SystemOutput = _open_osfhandle(intptr_t(ConsoleOutput), _O_TEXT);
-    FILE *COutputHandle = _fdopen(SystemOutput, "w");
+class Action {
+public:
+    std::string exec;
+    std::string dir;
 
-    // Get STDERR handle
-    HANDLE ConsoleError = GetStdHandle(STD_ERROR_HANDLE);
-    int SystemError = _open_osfhandle(intptr_t(ConsoleError), _O_TEXT);
-    FILE *CErrorHandle = _fdopen(SystemError, "w");
+    Action(std::string execParam, std::string dirParam) : exec(std::move(execParam)), dir(std::move(dirParam)) {
+    }
 
-    // Get STDIN handle
-    HANDLE ConsoleInput = GetStdHandle(STD_INPUT_HANDLE);
-    int SystemInput = _open_osfhandle(intptr_t(ConsoleInput), _O_TEXT);
-    FILE *CInputHandle = _fdopen(SystemInput, "r");
+    Action() : exec(""), dir("") {
+        // operator[] of std::map needs an empty constructor, see https://stackoverflow.com/a/695663
+    }
+};
 
-    // make cout, wcout, cin, wcin, wcerr, cerr, wclog and clog point to console as well
-    std::ios::sync_with_stdio(true);
+// this mapping consists of (keyCode, modifiers) => directories
+// for keyCodes see https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
+// for modifiers see https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309%28v=vs.85%29.aspx
+std::map<Hotkey, Action> mappings;
 
-    // Redirect the CRT standard input, output, and error handles to the console
-    freopen_s(&CInputHandle, "CONIN$", "r", stdin);
-    freopen_s(&COutputHandle, "CONOUT$", "w", stdout);
-    freopen_s(&CErrorHandle, "CONOUT$", "w", stderr);
-
-    // Clear the error state for each of the C++ standard stream objects. We need to do this, as
-    // attempts to access the standard streams before they refer to a valid target will cause the
-    // iostream objects to enter an error state. In versions of Visual Studio after 2005, this seems
-    // to always occur during startup regardless of whether anything has been read from or written to
-    // the console or not.
-    std::wcout.clear();
-    std::cout.clear();
-    std::wcerr.clear();
-    std::cerr.clear();
-    std::wcin.clear();
-    std::cin.clear();
-}
-
-void error(const std::string &msg) {
-    RedirectIOToConsole();
-    std::cerr << msg << std::endl;
-    system("pause");
-    std::exit(1);
-}
-
-void readHotkeysFromFile(const std::string &filename, std::map<std::pair<int, int>, std::string> &hotkeys) {
+void readHotkeysFromFile(const std::string &filename) {
     static std::map<std::string, unsigned int> MODIFIERS{
             {"MOD_ALT",     MOD_ALT},
             {"MOD_CONTROL", MOD_CONTROL},
@@ -78,6 +50,7 @@ void readHotkeysFromFile(const std::string &filename, std::map<std::pair<int, in
         if (rawKey.empty() || rawModifiers.empty() || exec.empty()) {
             error("key, modifiers and exec are mandatory for section " + section + "!");
         }
+        const auto dir = reader.Get(section, "dir", "");
 
         const int keyCode = toupper(rawKey[0]);
         unsigned int modifiers = 0;
@@ -91,20 +64,17 @@ void readHotkeysFromFile(const std::string &filename, std::map<std::pair<int, in
                       " is invalid. Only MOD_ALT, MOD_CONTROL, MOD_SHIFT AND MOD_WIN are allowed");
             }
         }
-        const auto identifier = std::make_pair(keyCode, modifiers);
-        hotkeys[identifier] = exec;
+        const Hotkey hotkey = std::make_pair(keyCode, modifiers);
+        const Action action(exec, dir);
+        mappings[hotkey] = action;
     }
 }
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow) {
-    // this mapping consists of (keyCode, modifiers) => directories
-    // for keyCodes see https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
-    // for modifiers see https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309%28v=vs.85%29.aspx
-    std::map<std::pair<int, int>, std::string> hotkeys;
-    readHotkeysFromFile(lpCmdLine, hotkeys);
+    readHotkeysFromFile(lpCmdLine);
 
     // register hotkeys
-    for (auto const &iterator : hotkeys) {
+    for (auto const &iterator : mappings) {
         std::pair<int, int> hotkey = iterator.first;
         if (!RegisterHotKey(nullptr, 1, static_cast<UINT>(hotkey.second), static_cast<UINT>(hotkey.first))) {
             error("Couldn't register hotkey " + std::to_string(hotkey.first) + " (modifiers " +
@@ -121,11 +91,11 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
             return 1;
         }
         if (msg.message == WM_HOTKEY) {
-            int modifiers = LOWORD(msg.lParam);
-            int keyCode = HIWORD(msg.lParam);
+            unsigned int modifiers = LOWORD(msg.lParam);
+            unsigned int keyCode = HIWORD(msg.lParam);
 
-            const std::string exec = hotkeys[std::make_pair(keyCode, modifiers)];
-            ShellExecute(nullptr, "open", exec.c_str(), nullptr, nullptr, SW_SHOWMAXIMIZED);
+            const Action action = mappings[std::make_pair(keyCode, modifiers)];
+            ShellExecute(nullptr, "open", action.exec.c_str(), nullptr, action.dir.c_str(), SW_SHOWMAXIMIZED);
         }
     }
 

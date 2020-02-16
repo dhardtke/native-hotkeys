@@ -13,7 +13,9 @@ hotkeys.exe path-to-ini-file
 [downloads]
 key = d
 modifiers = MOD_ALT,MOD_CONTROL
-exec = C:\Users\User\Downloads
+exec = C:\Users\User\Downloads\myProgram.exe
+dir = C:\
 ```
 
-Opens the folder `C:\Users\User\Downloads` when pressing `CTRL` + `ALT` + `D`.
+Opens the file `C:\Users\User\Downloads\myProgram.exe` when pressing `CTRL` + `ALT` + `D` in the working directory `C:\`.
+(The `dir` argument is optional.)
