@@ -61,7 +61,7 @@ void error(const std::string &msg) {
 }
 
 void readHotkeysFromFile(const std::string &filename, std::map<std::pair<int, int>, std::string> &hotkeys) {
-    static std::map<std::string, int> MODIFIERS{
+    static std::map<std::string, unsigned int> MODIFIERS{
             {"MOD_ALT",     MOD_ALT},
             {"MOD_CONTROL", MOD_CONTROL},
             {"MOD_SHIFT",   MOD_SHIFT},
@@ -80,7 +80,7 @@ void readHotkeysFromFile(const std::string &filename, std::map<std::pair<int, in
         }
 
         const int keyCode = toupper(rawKey[0]);
-        int modifiers = 0;
+        unsigned int modifiers = 0;
         std::string tmp;
         std::istringstream stream(rawModifiers);
         while (getline(stream, tmp, ',')) {
