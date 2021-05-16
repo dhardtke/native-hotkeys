@@ -5,10 +5,12 @@ This program allows to register hotkeys that open folders / programs on the file
 
 # Usage
 ```cli
-hotkeys.exe path-to-ini-file
+hotkeys.exe [path-to-ini-file]
 ```
 
-# Sample ini file
+(If `path-to-ini-file` is not specified the file `config.ini` in the current working directory is used.)
+
+# Sample config file
 ```ini
 [downloads]
 key = d
